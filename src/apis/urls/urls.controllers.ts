@@ -38,12 +38,19 @@ export const redirect = async (req: Request, res: Response, next: NextFunction) 
 export const deleteUrl = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const url = await Url.findOne({ urlCode: req.params.code });
-        if (url) {
-            await Url.findByIdAndDelete(url._id);
-            res.status(201).json("Deleted");
-        } else {
+        if (!url) {
             res.status(404).json("No URL Found");
+            return;
         }
+
+        const userId = (req as { user?: { userId?: string } }).user?.userId;
+        if (userId && url.userId && url.userId.equals(userId)) {
+            await Url.findByIdAndDelete(url._id);
+            res.status(200).json("Deleted");
+            return;
+        }
+
+        res.status(403).json("Forbidden");
     } catch (err) {
         next(err);
     }
